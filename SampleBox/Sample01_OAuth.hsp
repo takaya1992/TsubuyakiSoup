@@ -1,0 +1,114 @@
+/*======================================================================
+    OAuth認証サンプル
+------------------------------------------------------------------------
+    OAuth認証のサンプルです。
+    OAuth認証には、
+      ・API"oauth/request_token"にアクセスしてRequestTokenと
+        RequestTokenSecretを取得。
+      ・WebブラウザでAPI"oauth/authorize"にアクセスして、ユーザが「許可
+        (allow)」ボタンを押すとPINコードが発行される。
+      ・発行されたPINコードをクライアントに入力してもらう。
+      ・API"oauth/access_token"にアクセスしてAccessTokenと
+        AccessTokenSecretを取得。
+  という手順が必要です。
+    上記の手順で取得したAccessTokenとAccessTokenSecretを使い、他のAPIを
+  実行することが出来ます。
+
+  ※このモジュールやサンプルを実行する場合には、Twitter側から
+    ConsumerKeyとConsumerSecretを取得する必要があります。詳しくは、モ
+    ジュールと同封されている「TsubuyakiSoup.html」を参照してください。
+------------------------------------------------------------------------
+Author     : takata
+LastUpdate : 10/10/30
+CreateDate : 10/09/23
+======================================================================*/
+
+
+// モジュールをインクルード
+#include "./TsubuyakiSoup.as"
+
+; サンプル用設定ファイル
+#include "SampleSetting.hsp"
+
+
+//---------------------------------
+// 初期化処理
+//    TsubuyakiSoupを使用するには、使用前に TS_Init 命令を実行してください。
+//    Twitterから取得したConsumerKeyとConsumerSecretを設定します。
+//    第４引数にはタイムアウトの時間を秒単位で設定してください。
+
+	TS_Init "TsubuyakiSoup Sample", CONSUMER_KEY, CONSUMER_SECRET, 20
+
+//---------------------------------
+
+
+//---------------------------------
+// Request Token＆Secretの取得とユーザにアクセス許可を求めるURLを生成。
+//    
+	AuthAdress = GetAuthorizeAdress()
+	; エラー判断
+	if AuthAdress = "Error" {
+		dialog "リクエストトークンの取得に失敗しました。終了します。", 0, "エラー"
+		end
+	}
+//---------------------------------
+
+
+
+	mes "IEを起動します。"
+
+
+
+//---------------------------------
+// API"oauth/authorize"へアクセスし、ユーザにアクセス許可を求める。
+	newcom ie, "InternetExplorer.Application"
+	ie->"Navigate" AuthAdress
+	ie("Visible") = 1
+//---------------------------------
+
+
+	mes ""
+	mes "表示されたPINコードを入力して、OKボタンを押してください。"
+	PINCode = ""
+	input PINCode, 200,20
+	pos 150
+	button "OK", *typed
+stop
+
+
+*typed
+	if PINCode = "" : dialog "PINコードが入力されていません。" : stop
+
+
+//---------------------------------
+// AccessTokenとAccessTokenSecretの取得
+//    GetAccessToken 命令でAccessTokenとAccessTokenSecretを取得します。
+	GetAccessToken AccessToken, AccessTokenSecret, UserInfoTmp, PINCode
+	; エラー判断
+	if stat != 200 {
+		dialog "アクセストークンの取得に失敗しました。終了します。\nステータスコード : "+ stat, 0, "エラー"
+		end
+	}
+//    SetAccessToken 命令でAccessTokenとAccessTokenSecretを設定します。
+	SetAccessToken AccessToken, AccessTokenSecret
+//---------------------------------
+
+
+	pos 0
+	mes ""
+	mes "アクセストークン取得"
+	mes "AccessToken : "+ AccessToken
+	mes "AccessTokenSecret : "+ AccessTokenSecret
+
+//---------------------------------
+// トークンの保存
+//    アクセストークンは、セキュリティの観点から暗号化して保存しておくことを推奨します。
+
+	notesel SettingFile
+	noteadd AccessToken, 0, 0
+	noteadd AccessTokenSecret, 1, 0
+	noteadd UserInfoTmp, 2, 0
+	if (Encryption(SettingFile, "SampleKey", "Setting.txt") = 0) : dialog "ファイルの暗号化に失敗したため、ファイルは保存されませんでした。" : stop
+
+//---------------------------------
+stop

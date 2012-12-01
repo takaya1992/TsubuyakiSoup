@@ -1,0 +1,74 @@
+/*======================================================================
+    ツイートサンプル
+------------------------------------------------------------------------
+    ツイートするサンプルです。
+    (このサンプルを実行するには、「Sample01_OAuth.hsp」か
+    「Sample02_xAuth.hsp」を実行して「Setting.txt」を作成してくださ
+    い。)
+
+  ※このモジュールやサンプルを実行する場合には、Twitter側から
+    ConsumerKeyとConsumerSecretを取得する必要があります。詳しくは、モ
+    ジュールと同封されている「TsubuyakiSoupドキュメント」を参照して
+    ください。
+------------------------------------------------------------------------
+Author     : takata
+LastUpdate : 10/10/16
+CreateDate : 10/09/23
+======================================================================*/
+
+// モジュールをインクルード
+#include "../TsubuyakiSoup.as"
+
+;サンプル用設定ファイル
+#include "SampleSetting.hsp"
+if CONSUMER_KEY = "" : dialog "「SampleSetting.hsp」でConsumerKeyとConsumerSecretを設定してください。" : end
+
+
+	// 初期化
+	TS_Init "TsubuyakiSoup Sample", CONSUMER_KEY, CONSUMER_SECRET, 20
+
+
+	//設定ファイルの有無確認
+	xToken = ""
+	xSecret = ""
+	exist "Setting.txt"
+	if strsize != -1 {
+		notesel SFA
+		noteload "Setting.txt"
+		if (Decryption(SFA, "SampleKey")=0) : dialog "ファイルの復号に失敗したため、読み込むことができませんでした。終了します。" : end
+		noteget xToken,0
+		noteget xSecret,1
+		noteunsel
+		SetAccessToken xToken, xSecret
+	}
+	if ( (xToken ="") or (xSecret = "") ) : dialog "「Sample01_OAuth.hsp」か「Sample02_xAuth.hsp」を実行して「Setting.txt」を作成してください。" : end
+
+	TweetText = ""
+	pos 10, 10
+	input TweetText, 450,20
+	InputID = stat
+	pos 470, 8
+	button gosub "投　稿", *submit
+
+stop
+
+
+*submit
+
+//---------------------------------
+// ツイート
+//    Tweet 命令で投稿します。
+//    第一引数に投稿する文字列を指定します。
+	Tweet TweetText, 0
+	; エラー判断
+	if (stat = 200) {
+		objprm InputID, ""
+	} else {
+		dialog "投稿に失敗しました。\nステータスコード : "+stat,1,"投稿失敗"
+	}
+//---------------------------------
+
+return
+
+stop
+

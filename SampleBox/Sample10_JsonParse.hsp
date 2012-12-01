@@ -1,0 +1,80 @@
+/*======================================================================
+    JSONパーサテストサンプル
+------------------------------------------------------------------------
+    JSONパーサのテスト用サンプルです。
+    (このサンプルを実行するには、「Sample01_OAuth.hsp」か
+    「Sample02_xAuth.hsp」を実行して「Setting.txt」を作成してくださ
+    い。)
+
+  ※このモジュールやサンプルを実行する場合には、Twitter側から
+    ConsumerKeyとConsumerSecretを取得する必要があります。詳しくは、モ
+    ジュールと同封されている「TsubuyakiSoupドキュメント」を参照して
+    ください。
+------------------------------------------------------------------------
+Author     : takata
+LastUpdate : 11/09/21
+CreateDate : 11/09/21
+======================================================================*/
+
+// モジュールをインクルード
+#include "TsubuyakiSoup.as"
+
+;サンプル用設定ファイル
+#include "SampleSetting.hsp"
+
+	// 初期化
+	TS_Init "TsubuyakiSoup Sample", CONSUMER_KEY, CONSUMER_SECRET, 20
+
+	//設定ファイルの有無確認
+	xToken = ""
+	xSecret = ""
+	exist "Setting.txt"
+	if strsize != -1 {
+		notesel SFA
+		noteload "Setting.txt"
+		if (Decryption(SFA, "SampleKey")=0) : dialog "ファイルの復号に失敗したため、読み込むことができませんでした。終了します。" : end
+		noteget xToken,0
+		noteget xSecret,1
+		noteunsel
+		SetAccessToken xToken, xSecret
+	}
+	if ( (xToken ="") or (xSecret = "") ) : dialog "「Sample01_OAuth.hsp」か「Sample02_xAuth.hsp」を実行して「Setting.txt」を作成してください。" : end
+
+
+//---------------------------------
+// ホームタイムラインの取得
+	GetHomeTL 5
+	rawText = getBody()
+	; エラー判断
+	if stat != 200 {
+		dialog "タイムラインの取得に失敗しました。終了します。\nステータスコード : "+ stat, 0, "エラー"
+		end
+	}
+//---------------------------------
+
+
+
+
+//原文表示
+mesbox rawText,640, 480
+
+
+screen 1, 640, 480
+//---------------------------------
+// JSON形式のパース
+	// JSON形式のテキストを選択
+	json_sel rawText
+	// json_val関数で任意のオブジェクトにアクセスできます。
+	mes json_val("[0].user.name")
+	mes "  "+ json_val("[0].text")
+
+	mes "----------------"
+	// json_length関数で任意のオブジェクトの配列の個数を求めることができます。
+	repeat json_length("")
+		mes json_val("["+ cnt +"].user.name")
+		mes "  "+ json_val("["+ cnt +"].text")
+	loop
+//---------------------------------
+
+stop
+

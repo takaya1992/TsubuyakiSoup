@@ -1,0 +1,117 @@
+/*======================================================================
+    フォロー＆リムーブサンプル
+------------------------------------------------------------------------
+    フォロー＆リムーブをするサンプルです。
+    (このサンプルを実行するには、「Sample01_OAuth.hsp」か
+    「Sample02_xAuth.hsp」を実行して「Setting.txt」を作成してくださ
+    い。)
+
+  ※このモジュールやサンプルを実行する場合には、Twitter側から
+    ConsumerKeyとConsumerSecretを取得する必要があります。詳しくは、モ
+    ジュールと同封されている「TsubuyakiSoupドキュメント」を参照して
+    ください。
+------------------------------------------------------------------------
+Author     : takata
+LastUpdate : 10/10/16
+CreateDate : 10/10/16
+======================================================================*/
+
+// モジュールをインクルード
+#include "../TsubuyakiSoup.as"
+
+;サンプル用設定ファイル
+#include "SampleSetting.hsp"
+
+	// 初期化
+	TS_Init "TsubuyakiSoup Sample", CONSUMER_KEY, CONSUMER_SECRET, 20
+
+	//設定ファイルの読み込み(ジャンプ先はSampleSetting.hsp内にあります。)
+	gosub *FileRead
+
+	//MSXML COMの初期化
+	newcom oDom,"Microsoft.XMLDOM"
+	oDom("async")="False"
+	//変数初期化
+	lb_sel = 0					//リストボックスの状態
+	lb_elm = ""					//リストボックスの内容
+	OtherScreenName = "twj"		//相手アカウント
+
+	// GUI構成
+	pos 5, 5
+	mes "相手のユーザ名 : "
+	pos 140, 5
+	input OtherScreenName, 150, 20
+	pos 300, 3
+	button gosub "調べる！",*l_IsFriends
+	pos 5, 40
+	mes "自分のFriends一覧（一部）"
+	objsize 200,100
+	listbox lb_sel, 200, lb_elm
+	lb_id = stat
+
+	//Friends取得
+	gosub *l_GetFriends
+stop
+
+
+*l_IsFriends
+//---------------------------------
+// ユーザ間のfriend関係の取得
+//    FriendShow 命令で取得します。
+//    第一引数に""を指定するか省略した場合は、自分との関係を調べます。
+	FriendShow ,OtherScreenName
+//---------------------------------
+
+	oDom->"loadXML" getBody()
+	oRoot = oDom("documentElement")
+	if varuse(oRoot)=0 : dialog "MSXMLの初期化に失敗しました。"
+	// フォローしているかを取得
+	comres elm_follow
+	oDom->"SelectNodes" "/relationship/source/following"
+	node = elm_follow("item", 0)
+	Following = node("text")
+
+	if Following = "true" {
+		// フォローしていた場合
+		dialog "あなたは、"+ OtherScreenName +"をフォローしています。リムーブしますか？", 2
+		if stat = 6 : gosub *l_Remove
+	} else {
+		// フォローしていなかった場合
+		dialog "あなたは、"+ OtherScreenName +"をフォローしていません。フォローしますか？", 2
+		if stat = 6 : gosub *l_Follow
+	}
+return
+
+*l_GetFriends
+//---------------------------------
+// friendsの一覧を取得
+//    GetFriends 命令を使用します。
+//    第一引数を省略した場合は先頭から100件分取得します。第二引数を省略した場合は自分のFriendsを取得します。
+	GetFriends
+//---------------------------------
+	//エラー判断
+	if stat != 200 : return
+	//XML解析
+	oDom->"loadXML" getBody()
+	oRoot = oDom("documentElement")
+	if varuse(oRoot)=0 : dialog "MSXMLの初期化に失敗しました。"
+	comres elmtmp
+	oDom->"SelectNodes" "/users_list/users/user/screen_name"
+	repeat elmtmp("length")
+		node = elmtmp("item",cnt)
+		if cnt = 0 : lb_elm = node("text") : continue
+		lb_elm += "\n"+ node("text")
+	loop
+	//リストに反映
+	objprm lb_id, lb_elm
+return
+
+*l_Remove
+	Remove OtherScreenName
+	gosub *l_GetFriends
+return
+
+*l_Follow
+	Follow OtherScreenName
+	gosub *l_GetFriends
+return
