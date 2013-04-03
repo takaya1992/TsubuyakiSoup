@@ -93,134 +93,7 @@ Win
 #define global FORMAT_XML	1
 
 
-
-
-//============================================================
-/*  [HDL symbol infomation]
-
-%index
-Encryption
-文字列を暗号化してファイルに保存
-
-%prm
-(p1, p2)
-p1 = 変数      : 暗号化する文字列を代入した変数
-p2 = 文字列    : 鍵とする文字列
-p3 = 文字列    : ファイル名
-
-%inst
-文字列をRC4アルゴリズムで暗号化しファイルに保存します。成功すると 1 、失敗すると 0 が返ります。
-
-暗号化する文字列を代入した変数をp1に指定します。暗号化された文字列はp1の変数に返ります。
-
-暗号化するための鍵（キー）は、p2に文字列として指定します。
-
-関数実行時に、p1の変数の内容が書き換えられてしまうことに気をつけてください。
-
-この関数で暗号化されたファイルは、Decryption関数で平文に復号することができます。
-
-%group
-TsubuyakiSoup補助関数
-
-%href
-Decryption
-
-%*/
-//------------------------------------------------------------
-#defcfunc Encryption var p1, str p2, str p3
-	EncryptStrLen = strlen(p1)
-	EncryptStrLen2 = strlen(p1)
-	refstat = 0
-	if ( _CryptAcquireContext(hProv, 0, 0, 1, 0) = 0) {
-		 if ( _CryptAcquireContext(hProv, 0, "Microsoft Enhanced Cryptographic Provider v1.0", 1, 0x00000008) = 0) {
-		 	return 0
-		 }
-	}
-	//ハッシュ作成
-	if ( _CryptCreateHash(hProv, 0x00008004, 0, 0, hHash) ) {
-		//ハッシュ値計算
-		if ( _CryptHashData(hHash, p2, strlen(p2)+1, 0) ) {
-			//暗号鍵の生成
-			if ( _CryptDeriveKey(hProv, 0x00006801, hHash, 0x800000, hKey) ) {
-				//暗号化
-				if ( _CryptEncrypt( hKey, 0, 1, 0, 0, EncryptStrLen, 0) ) {		;バッファの確保用
-					memexpand p1, EncryptStrLen
-					if ( _CryptEncrypt( hKey, 0, 1, 0, varptr(p1), EncryptStrLen2, EncryptStrLen) ) {	;暗号化
-						refstat = 1
-					}
-				}
-				_CryptDestroyKey hKey
-			}
-		}
-		_CryptDestroyHash hHash
-	}
-	_CryptReleaseContext hProv, 0
-	bsave p3, p1
-return refstat
-//============================================================
-
-
-
-
-//============================================================
-/*  [HDL symbol infomation]
-
-%index
-Decryption
-暗号化されたファイルを復号
-
-%prm
-(p1, p2)
-p1 = 変数      : 復号した文字列を代入する変数
-p2 = 文字列    : 鍵とする文字列
-p3 = 文字列    : ファイル名
-
-%inst
-RC4アルゴリズムで暗号化されたファイルを復号します。成功すると 1 、失敗すると 0 が返ります。
-
-復号した文字列を代入する変数をp1に指定します。
-
-復号するための鍵（キー）は、p2に文字列として指定します。
-
-p3には、暗号化されたファイルの名前を指定します。ファイルの存在チェックなどはしていないので、スクリプト側でチェックしてください。
-
-%group
-TsubuyakiSoup補助関数
-
-%href
-Encryption
-
-%*/
-//------------------------------------------------------------
-#defcfunc Decryption var p1, str p2, str p3
-	exist p3
-	sdim p1, strsize
-	bload p3, p1
-	EncryptStrLen = strsize
-	refstat = 0
-	if ( _CryptAcquireContext(hProv, 0, 0, 1, 0) = 0) {
-		 if ( _CryptAcquireContext(hProv, 0, "Microsoft Enhanced Cryptographic Provider v1.0", 1, 0x00000008) = 0) {
-		 	return 0
-		}
-	}
-	//ハッシュ作成
-	if ( _CryptCreateHash(hProv, 0x00008004, 0, 0, hHash) ) {
-		//ハッシュ値計算
-		if ( _CryptHashData(hHash, p2, strlen(p2), 0) ) {
-			//暗号鍵の生成
-			if ( _CryptDeriveKey(hProv, 0x00006801, hHash, 0x800000, hKey) ) {
-				//復号
-				if ( _CryptDecrypt( hKey, 0, 1, 0, p1, EncryptStrLen) ) {
-					refstat = 1
-				}
-				_CryptDestroyKey hKey
-			}
-		}
-		_CryptDestroyHash hHash
-	}
-	_CryptReleaseContext hProv, 0
-return refstat
-//============================================================
+#define API_URL "https://api.twitter.com/"
 
 
 
@@ -457,7 +330,7 @@ http://watcher.moe-nifty.com/memo/docs/twitterAPI.txt
 	//ソート
 	SortString SigArray
 	//"&"で連結
-	TransStr = ""+ Method +" https://api.twitter.com/"+ VersionStr + API +" "
+	TransStr = ""+ Method +" "+ API_URL + VersionStr + API +" "
 	repeat SigArrayMax
 		if SigArray(cnt) = "" : continue
 		TransStr += SigArray(cnt) +"&"
