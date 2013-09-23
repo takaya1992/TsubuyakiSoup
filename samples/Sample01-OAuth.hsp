@@ -1,0 +1,19 @@
+#include "../TsubuyakiSoup.hsp"
+
+
+#define CONSUMER_KEY    ""
+#define CONSUMER_SECRET ""
+#define ACCESS_TOKEN     ""
+#define ACCESS_SECRET    ""
+
+
+tCupInit "test", CONSUMER_KEY, CONSUMER_SECRET, 10
+
+setAccessToken ACCESS_TOKEN, ACCESS_SECRET
+
+tweet "‚Ç‚·‚±‚¢"
+
+
+response = "#####  HEADER  ######\n"+getResponseHeader()+"\n\n#####  BODY  #####\n"+getResponseBody()
+mesbox response, 640, 480, 4
+

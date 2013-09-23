@@ -71,37 +71,34 @@ Win
 
 
 
-#define HP_HMAC_INFO            0x0005
-#define PLAINTEXTKEYBLOB        0x8
-#define CUR_BLOB_VERSION        2
-#define PROV_RSA_FULL 1
-#define CRYPT_IPSEC_HMAC_KEY    0x00000100
-#define HP_HASHVAL              0x0002
-#define ALG_CLASS_HASH          (4 << 13)
-#define ALG_TYPE_ANY            (0)
-#define ALG_SID_SHA1            4
-#define ALG_SID_HMAC            9
-#define ALG_CLASS_DATA_ENCRYPT  (3 << 13) // 0x6000
-#define ALG_TYPE_BLOCK          (3 << 9)  // 0x0600
-#define ALG_SID_RC2             2         // 0x0002
-#define CALG_SHA1               (ALG_CLASS_HASH | ALG_TYPE_ANY | ALG_SID_SHA1)
-#define CALG_HMAC               (ALG_CLASS_HASH | ALG_TYPE_ANY | ALG_SID_HMAC)
-#define CALG_RC2                (ALG_CLASS_DATA_ENCRYPT|ALG_TYPE_BLOCK|ALG_SID_RC2)
-
-
-
-#define INTERNET_OPEN_TYPE_DIRECT                       1
+#define HP_HMAC_INFO                            0x0005
+#define PLAINTEXTKEYBLOB                        0x8
+#define CUR_BLOB_VERSION                        2
+#define PROV_RSA_FULL                           1
+#define CRYPT_IPSEC_HMAC_KEY                    0x00000100
+#define HP_HASHVAL                              0x0002
+#define ALG_CLASS_HASH                          (4 << 13)
+#define ALG_TYPE_ANY                            (0)
+#define ALG_SID_SHA1                            4
+#define ALG_SID_HMAC                            9
+#define ALG_CLASS_DATA_ENCRYPT                  (3 << 13) // 0x6000
+#define ALG_TYPE_BLOCK                          (3 << 9)  // 0x0600
+#define ALG_SID_RC2                             2         // 0x0002
+#define CALG_SHA1                               (ALG_CLASS_HASH | ALG_TYPE_ANY | ALG_SID_SHA1)
+#define CALG_HMAC                               (ALG_CLASS_HASH | ALG_TYPE_ANY | ALG_SID_HMAC)
+#define CALG_RC2                                (ALG_CLASS_DATA_ENCRYPT|ALG_TYPE_BLOCK|ALG_SID_RC2)
+//
+#define INTERNET_OPEN_TYPE_DIRECT               1
 #define INTERNET_OPTION_CONNECT_TIMEOUT         2
 #define INTERNET_OPTION_HTTP_DECODING           65
-
-#define INTERNET_DEFAULT_HTTPS_PORT     443
-#define INTERNET_SERVICE_HTTP   3
+#define INTERNET_DEFAULT_HTTPS_PORT             443
+#define INTERNET_SERVICE_HTTP                   3
 #define HTTP_QUERY_STATUS_CODE                  19
 #define HTTP_QUERY_RAW_HEADERS_CRLF             22
-#define INTERNET_FLAG_RELOAD            0x80000000
-#define INTERNET_FLAG_SECURE            0x00800000
-#define INTERNET_FLAG_NO_CACHE_WRITE    0x04000000
-#define INTERNET_FLAG_DONT_CACHE        INTERNET_FLAG_NO_CACHE_WRITE
+#define INTERNET_FLAG_RELOAD                    0x80000000
+#define INTERNET_FLAG_SECURE                    0x00800000
+#define INTERNET_FLAG_NO_CACHE_WRITE            0x04000000
+#define INTERNET_FLAG_DONT_CACHE                INTERNET_FLAG_NO_CACHE_WRITE
 #define INTERNET_FLAG_IGNORE_CERT_DATE_INVALID  0x00002000
 #define INTERNET_FLAG_IGNORE_CERT_CN_INVALID    0x00001000
 
@@ -177,6 +174,35 @@ return
 #define global tCupInit(%1,%2,%3,%4=30) _tCupInit %1, %2, %3, %4
 //============================================================
 
+
+
+
+//============================================================
+/*  [HDL symbol infomation]
+
+%index
+tCupWash
+TsubuyakiSoupの終了処理
+
+%inst
+TsubyakiSoupモジュールの終了処理を行ないます。
+プログラム終了時に自動的に呼び出されるので明示的に呼び出す必要はありません。
+
+%href
+TS_Init
+
+%group
+TwitterAPI操作命令
+
+%*/
+//------------------------------------------------------------
+#deffunc tCupWash onexit
+	//ハンドルの破棄
+	if (hRequest) : _InternetCloseHandle hRequest
+	if (hConnect) : _InternetCloseHandle hConnect
+	if (hInet) : _InternetCloseHandle hInet
+return
+//============================================================
 
 
 
@@ -374,7 +400,7 @@ return form_encode(base64encode( getHmacSha1(SigEnc, SecretEnc) ), 0)
 
 	tokenStr = accessToken
 	sigKey = consumerSecret+" "+accessSecret
-	
+	logmes "sigkey="+sigKey
 	if (api = "oauth/access_token") {
 		tokenStr = requestToken
 		sigKey = consumerSecret+" "+requestSecret
@@ -394,6 +420,11 @@ return form_encode(base64encode( getHmacSha1(SigEnc, SecretEnc) ), 0)
 		sigArray(6+cnt) = arguments(cnt)
 	loop
 
+	logmes "--------------------------"
+	repeat length(sigArray)
+		logmes "sigArray("+cnt+") = "+sigArray(cnt)
+	loop
+	logmes "--------------------------"
 	_sortStrArray sigArray, 0, sigArrayLength-1
 
 	repeat sigArrayLength
@@ -403,13 +434,16 @@ return form_encode(base64encode( getHmacSha1(SigEnc, SecretEnc) ), 0)
 	transStr = strmid(transStr, 0, strlen(transStr)-1)
 	signature = sigEncode(transStr, sigKey)
 
-	if (p3 = METHOD_POST) {
+	if (methodType = METHOD_POST) {
 		postStr = ""
 		repeat sigArrayLength
 			postStr += sigArray(cnt) +"&"
 		loop
 		postStr += "oauth_signature=" +signature
 		postStrLength = strlen(postStr)
+		logmes "POST"
+		logmes "poststr = "+poststr
+		logmes "postlength = "+poststrlength
 	}
 	if (methodType = METHOD_GET) {
 		postStr = 0
@@ -420,10 +454,6 @@ return form_encode(base64encode( getHmacSha1(SigEnc, SecretEnc) ), 0)
 		loop
 		apiUrl += "oauth_signature=" +signature
 	}
-	logmes transStr
-	logmes sigKey
-	logmes signature
-	logmes apiUrl
 
 	//サーバへ接続
 	hConnect = _InternetConnect(hInet, "api.twitter.com", INTERNET_DEFAULT_HTTPS_PORT, 0, 0, INTERNET_SERVICE_HTTP, 0, 0)
@@ -441,7 +471,7 @@ return form_encode(base64encode( getHmacSha1(SigEnc, SecretEnc) ), 0)
 	}
 	
 	//サーバへリクエスト送信
-	if ( _HttpSendRequest(hRequest, "Accept-Encoding: gzip, deflate\n", -1, postStr, postStrLength)) {
+	if ( _HttpSendRequest(hRequest, "Accept-Encoding: gzip, deflate;\nContent-Type: application/x-www-form-urlencoded", -1, postStr, postStrLength)) {
 		//ヘッダを取得する変数の初期化
 		responseHeaderSize = 3000
 		sdim responseHeader, responseHeaderSize
@@ -496,6 +526,238 @@ return responseHeader
 #defcfunc getResponseBody
 return responseBody
 
+
+
+
+//============================================================
+/*  [HDL symbol infomation]
+
+%index
+setFormatType
+取得フォーマットの設定
+
+%prm
+p1
+p1 = 0～1(0)     : フラグ
+
+%inst
+TwitterAPI操作命令系で取得するデータのフォーマットを設定します。
+
+p1には以下のフラグが設定できます。
+    0 : JSON形式で取得
+    1 : XML形式で取得
+
+%group
+TwitterAPI操作命令
+
+%*/
+//------------------------------------------------------------
+#deffunc _setFormatType int sft_p1
+	formatType = "json"
+	if sft_p1 = FORMAT_XML : formatType = "xml"
+return
+#define global setFormatType(%1=0) _setFormatType %1
+//============================================================
+
+
+
+
+//============================================================
+/*  [HDL symbol infomation]
+
+%index
+SetAccessToken
+AccessTokenとSecretを設定
+
+%prm
+p1, p2
+p1 = 文字列      : Access Token
+p2 = 文字列      : Access Secret
+
+%inst
+TsubuyakiSoupにAccess TokenとAccess Secretを設定します。
+
+p1にAccess Tokenを、p2にAccess Secretを指定します。
+
+このAccess TokenとAccess Secretは、GetAccessToken命令かGetxAuthToken命令で取得することができます。詳しくは、リファレンスをご覧ください。
+
+%href
+GetAccessToken
+GetxAuthToken
+
+%group
+TwitterAPI操作命令
+
+%*/
+//------------------------------------------------------------
+#deffunc setAccessToken str sat_p1, str sat_p2
+	accessToken = sat_p1
+	accessSecret = sat_p2
+return
+//============================================================
+
+
+
+
+//============================================================
+/*  [HDL symbol infomation]
+
+%index
+setRequestToken
+RequestTokenとSecretを設定
+
+%prm
+p1, p2
+p1 = 文字列      : Request Token
+p2 = 文字列      : Request Secret
+
+%inst
+TsubuyakiSoupにRequest TokenとRequest Secretを設定します。
+
+p1にRequest Tokenを、p2にRequest Secretを指定します。
+
+
+%href
+setAccessToken
+
+%group
+TwitterAPI操作命令
+
+%*/
+//------------------------------------------------------------
+#deffunc setRequestToken str srt_p1, str srt_p2
+	requestToken = srt_p1
+	requestSecret = srt_p2
+return
+//============================================================
+
+
+
+//============================================================
+/*  [HDL symbol infomation]
+
+%index
+getRequestToken
+RequestTokenとSecretを設定
+
+%prm
+()
+
+%inst
+
+
+
+%href
+setAccessToken
+
+%group
+TwitterAPI操作命令
+
+%*/
+//------------------------------------------------------------
+#defcfunc getRequestToken
+return requestToken
+//============================================================
+
+
+
+
+//============================================================
+/*  [HDL symbol infomation]
+
+%index
+getRequestSecret
+RequestTokenとSecretを設定
+
+%prm
+()
+
+%inst
+
+
+
+%href
+setAccessToken
+
+%group
+TwitterAPI操作命令
+
+%*/
+//------------------------------------------------------------
+#defcfunc getRequestSecret
+return requestSecret
+//============================================================
+
+
+
+
+//============================================================
+/*  [HDL symbol infomation]
+
+%index
+setConsumerToken
+AccessTokenとSecretを設定
+
+%prm
+p1, p2
+p1 = 文字列      : Consumer Token
+p2 = 文字列      : Consumer Secret
+
+%inst
+TsubuyakiSoupにConsumer TokenとConsumer Secretを設定します。
+
+p1にConsumer Tokenを、p2にConsumer Secretを指定します。
+
+%href
+tCupInit
+
+%group
+TwitterAPI操作命令
+
+%*/
+//------------------------------------------------------------
+#deffunc setConsumerToken str sct_p1, str sct_p2
+	consumerToken = sct_p1
+	consumerSecret = sct_p2
+return
+//============================================================
+
+
+
+
+//============================================================
+/*  [HDL symbol infomation]
+
+%index
+setUserInfo
+ユーザ情報を設定
+
+%prm
+p1, p2
+p1 = 文字列      : ユーザ名（スクリーン名）
+p2 = 文字列      : ユーザID
+
+%inst
+TsubuyakiSoupにユーザ名（スクリーン名）とユーザIDを設定します。
+
+p1にユーザ名（スクリーン名）を、p2にユーザIDを指定します。
+
+TsubuyakiSoup2からユーザIDも文字列で処理しています。
+
+%href
+GetAccessToken
+GetxAuthToken
+
+%group
+TwitterAPI操作命令
+
+%*/
+//------------------------------------------------------------
+#deffunc setUserInfo str sui_p1, str sui_p2
+	screenName = sui_p1
+	userId = sui_p2
+return
+//============================================================
 
 
 
